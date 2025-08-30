@@ -1,0 +1,50 @@
+version: "3.8"
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=${N8N_HOST:-n8n.localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://${N8N_HOST:-n8n.localhost}/
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-America/New_York}
+      - TZ=${TZ:-America/New_York}
+    volumes:
+      - ./n8n_data:/home/node/.n8n
+    networks:
+      - proxy-network
+      - n8n-network
+    depends_on:
+      - n8n-db
+    labels:
+      - "traefik.enable=false"
+
+  n8n-db:
+    image: postgres:15-alpine
+    container_name: n8n_postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=n8n
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-n8n_password}
+    volumes:
+      - ./n8n_db_data:/var/lib/postgresql/data
+    networks:
+      - n8n-network
+
+networks:
+  # The internal network for the proxy.
+  proxy-network:
+    driver: bridge
+  # Definition for connecting to the external WordPress network.
+  wordpress-blog_app-network:
+    external: true
+  n8n-network:
+    driver: bridge
+

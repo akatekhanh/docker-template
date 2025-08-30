@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  db:
+    # MariaDB is a high-performance, open-source drop-in replacement for MySQL.
+    image: mariadb:11
+    container_name: wordpress_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      # Use a named volume for persistent database storage.
+      - db_data:/var/lib/mysql
+    networks:
+      - app-network
+
+  wordpress:
+    depends_on:
+      - db
+    # Use the official, well-maintained WordPress image from Docker Hub.
+    image: wordpress:latest
+    container_name: wordpress_app
+    restart: unless-stopped
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: ${MYSQL_USER}
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD}
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE}
+    ports:
+      - "8000:80" # Access locally via http://localhost:8000
+    volumes:
+      # Use a bind mount for the wp-content directory for easy access to themes/plugins.
+      - ./wp-content:/var/www/html/wp-content
+      - ../config-wp/wp-config.php:/var/www/html/wp-config.php

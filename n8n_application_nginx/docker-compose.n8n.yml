@@ -15,11 +15,12 @@ services:
       - WEBHOOK_URL=https://${N8N_HOST:-n8n.localhost}/
       - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-America/New_York}
       - TZ=${TZ:-America/New_York}
+      - N8N_SECURE_COOKIE=false
     volumes:
       - ./n8n_data:/home/node/.n8n
     networks:
       - proxy-network
-      - n8n-network
+      - docker-template-network
     depends_on:
       - n8n-db
     labels:
@@ -36,15 +37,13 @@ services:
     volumes:
       - ./n8n_db_data:/var/lib/postgresql/data
     networks:
-      - n8n-network
+      - proxy-network
 
 networks:
   # The internal network for the proxy.
   proxy-network:
     driver: bridge
   # Definition for connecting to the external WordPress network.
-  wordpress-blog_app-network:
+  docker-template-network:
+    name: ${MAIN_NETWORK:-docker-template-network}
     external: true
-  n8n-network:
-    driver: bridge
-

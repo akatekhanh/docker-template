@@ -1,28 +1,30 @@
-version: '3.8'
+version: "3.8"
 
 services:
   app:
-    image: 'jc21/nginx-proxy-manager:latest'
+    image: "jc21/nginx-proxy-manager:latest"
     container_name: nginx_proxy_manager
     restart: unless-stopped
     ports:
       # Expose standard web ports to the public internet.
-      - '80:80'
-      - '443:443'
+      - "80:80"
+      - "443:443"
       # Expose the admin UI port only to the host.
-      - '81:81'
+      - "81:81"
     volumes:
       - ./data:/data
       - ./letsencrypt:/etc/letsencrypt
     networks:
       - proxy-network
       # This is the crucial link to the WordPress application stack.
-      - wordpress-blog_app-network
+      - docker-template-network
 
 networks:
   # The internal network for the proxy.
   proxy-network:
     driver: bridge
   # Definition for connecting to the external WordPress network.
-  wordpress-blog_app-network:
+  docker-template-network:
+    name: ${MAIN_NETWORK:-docker-template-network}
     external: true
+

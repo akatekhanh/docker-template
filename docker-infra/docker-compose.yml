@@ -1,0 +1,114 @@
+version: '3.8'
+
+networks:
+  main:
+    name: ${PROJECT_NAME:-docker-template}-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${NETWORK_SUBNET:-172.20.0.0/16}
+    labels:
+      - "env=${ENVIRONMENT:-dev}"
+  
+  internal:
+    name: ${PROJECT_NAME:-docker-template}-internal
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: ${INTERNAL_SUBNET:-172.21.0.0/16}
+    labels:
+      - "env=${ENVIRONMENT:-dev}"
+
+volumes:
+  app-data:
+    name: ${PROJECT_NAME:-docker-template}-app-data
+    driver: local
+    labels:
+      - "env=${ENVIRONMENT:-dev}"
+  
+  db-data:
+    name: ${PROJECT_NAME:-docker-template}-db-data
+    driver: local
+    labels:
+      - "env=${ENVIRONMENT:-dev}"
+  
+  cache-data:
+    name: ${PROJECT_NAME:-docker-template}-cache-data
+    driver: local
+    labels:
+      - "env=${ENVIRONMENT:-dev}"
+  
+  logs-data:
+    name: ${PROJECT_NAME:-docker-template}-logs-data
+    driver: local
+    labels:
+      - "env=${ENVIRONMENT:-dev}"
+
+services:
+  volume-backup:
+    image: alpine:latest
+    container_name: ${PROJECT_NAME:-docker-template}-volume-backup
+    volumes:
+      - app-data:/data/app
+      - db-data:/data/db
+      - cache-data:/data/cache
+      - logs-data:/data/logs
+      - ./scripts:/scripts
+    command: ["tail", "-f", "/dev/null"]
+    networks:
+      - internal
+    restart: unless-stopped
+    labels:
+      - "service=volume-backup"
+      - "env=${ENVIRONMENT:-dev}"
+
+  health-check:
+    image: curlimages/curl:latest
+    container_name: ${PROJECT_NAME:-docker-template}-health-check
+    networks:
+      - main
+    command: ["sleep", "infinity"]
+    restart: unless-stopped
+    labels:
+      - "service=health-check"
+      - "env=${ENVIRONMENT:-dev}"
+
+  backup-cron:
+    image: alpine:latest
+    container_name: ${PROJECT_NAME:-docker-template}-backup-cron
+    volumes:
+      - app-data:/data/app
+      - db-data:/data/db
+      - cache-data:/data/cache
+      - logs-data:/data/logs
+      - ./scripts:/scripts
+      - ./backups:/backups
+    command: ["crond", "-f", "-d", "8"]
+    environment:
+      - BACKUP_SCHEDULE=${BACKUP_SCHEDULE:-0 2 * * *}
+      - RETENTION_DAYS=${RETENTION_DAYS:-7}
+      - TIMEZONE=${TIMEZONE:-UTC}
+    networks:
+      - internal
+    restart: unless-stopped
+    labels:
+      - "service=backup-cron"
+      - "env=${ENVIRONMENT:-dev}"
+
+  volume-monitor:
+    image: alpine:latest
+    container_name: ${PROJECT_NAME:-docker-template}-volume-monitor
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - app-data:/data/app
+      - db-data:/data/db
+      - cache-data:/data/cache
+      - logs-data:/data/logs
+    command: ["sh", "-c", "while true; do df -h; sleep 300; done"]
+    networks:
+      - internal
+    restart: unless-stopped
+    labels:
+      - "service=volume-monitor"
+      - "env=${ENVIRONMENT:-dev}"

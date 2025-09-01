@@ -19,25 +19,25 @@ variable "network_name" {
 variable "network_subnet" {
   description = "Subnet for the main network"
   type        = string
-  default     = "172.20.0.0/16"
+  default     = "172.27.0.0/16"
 }
 
 variable "network_gateway" {
   description = "Gateway IP for the main network"
   type        = string
-  default     = "172.20.0.1"
+  default     = "172.27.0.1"
 }
 
 variable "internal_network_subnet" {
   description = "Subnet for the internal network"
   type        = string
-  default     = "172.21.0.0/16"
+  default     = "172.28.0.0/16"
 }
 
 variable "internal_network_gateway" {
   description = "Gateway IP for the internal network"
   type        = string
-  default     = "172.21.0.1"
+  default     = "172.28.0.1"
 }
 
 variable "volume_driver" {
@@ -76,6 +76,18 @@ variable "log_driver" {
   default     = "json-file"
 }
 
+variable "log_max_size" {
+  description = "Maximum log file size"
+  type        = string
+  default     = "10m"
+}
+
+variable "log_max_file" {
+  description = "Maximum number of log files to retain"
+  type        = number
+  default     = 3
+}
+
 variable "log_options" {
   description = "Log driver options"
   type        = map(string)
@@ -89,6 +101,16 @@ variable "labels" {
   description = "Additional labels to apply to all resources"
   type        = map(string)
   default     = {}
+}
+
+variable "restart_policy" {
+  description = "Docker container restart policy"
+  type        = string
+  default     = "unless-stopped"
+  validation {
+    condition     = contains(["no", "always", "unless-stopped", "on-failure"], var.restart_policy)
+    error_message = "Restart policy must be one of: no, always, unless-stopped, on-failure."
+  }
 }
 
 variable "container_restart_policy" {

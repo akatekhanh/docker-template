@@ -11,12 +11,12 @@ output "main_network_name" {
 
 output "main_network_gateway" {
   description = "Gateway IP of the main network"
-  value       = docker_network.main.ipam_config[0].gateway
+  value       = [for config in docker_network.main.ipam_config : config.gateway][0]
 }
 
 output "main_network_subnet" {
   description = "Subnet of the main network"
-  value       = docker_network.main.ipam_config[0].subnet
+  value       = [for config in docker_network.main.ipam_config : config.subnet][0]
 }
 
 output "internal_network_id" {
@@ -98,8 +98,8 @@ output "networks" {
     main = {
       id      = docker_network.main.id
       name    = docker_network.main.name
-      gateway = docker_network.main.ipam_config[0].gateway
-      subnet  = docker_network.main.ipam_config[0].subnet
+      gateway = [for config in docker_network.main.ipam_config : config.gateway][0]
+      subnet  = [for config in docker_network.main.ipam_config : config.subnet][0]
     }
     internal = {
       id   = docker_network.internal.id
@@ -123,11 +123,28 @@ output "infrastructure_info" {
   value = {
     project_name = var.project_name
     environment  = var.environment
-    networks     = self.networks
-    volumes      = self.volumes
+    networks = {
+      main = {
+        id      = docker_network.main.id
+        name    = docker_network.main.name
+        gateway = [for config in docker_network.main.ipam_config : config.gateway][0]
+        subnet  = [for config in docker_network.main.ipam_config : config.subnet][0]
+      }
+      internal = {
+        id   = docker_network.internal.id
+        name = docker_network.internal.name
+      }
+    }
+    volumes = {
+      app      = { name = docker_volume.app_data.name, id = docker_volume.app_data.id }
+      database = { name = docker_volume.database_data.name, id = docker_volume.database_data.id }
+      cache    = { name = docker_volume.cache_data.name, id = docker_volume.cache_data.id }
+      logs     = { name = docker_volume.logs_data.name, id = docker_volume.logs_data.id }
+    }
     containers = {
       volume_backup = { id = docker_container.volume_backup.id, name = docker_container.volume_backup.name }
       health_check  = { id = docker_container.health_check.id, name = docker_container.health_check.name }
     }
   }
 }
+
